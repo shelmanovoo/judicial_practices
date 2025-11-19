@@ -1,0 +1,239 @@
+{
+  "name": "judicial_practices",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://192.168.1.37:7474/db/judicialpractices/tx/commit",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "authorization",
+              "value": "Basic bmVvNGo6eW91cl9wYXNzd29yZA=="
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"statements\": [\n    {\n      \"statement\": \"MATCH (n)-[r]->(m) RETURN n, r, m LIMIT 15\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        160,
+        -96
+      ],
+      "id": "f4bcba6a-66e1-4616-a809-0371ae950696",
+      "name": "neo4j_judicialpractices",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "X10TuauxKleIULlv",
+          "name": "Unnamed credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-4.1-nano",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        112
+      ],
+      "id": "e03e9d4e-d2e2-4741-8cd5-f8089f7194e2",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "RuRzX28lgmAEHfEg",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "1251086517",
+        "text": "={{ $json.text }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        -96
+      ],
+      "id": "f7991f3c-0aee-44cd-bfb6-7ef322ccdc5e",
+      "name": "Send a text message",
+      "webhookId": "debd3a19-a9c9-4d0a-8e0e-32abcb4a8581",
+      "credentials": {
+        "telegramApi": {
+          "id": "4KLXhmmNhE8XgOtg",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-4.1-nano",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        352,
+        112
+      ],
+      "id": "03865938-ab88-42a3-9b8f-ba12c4fded76",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "RuRzX28lgmAEHfEg",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.results }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Ты - юридический ассистент. Анализируй данные судебных дел и выделяй ключевые insights:  1. Сгруппируй дела по номерам 2. Для каждого дела покажи:    - Суть спора    - Результат    - Кто против кого 3. Добавь краткий анализ если есть закономерности 4. Используй понятный язык без юридических сложностей  Формат: кратко, с эмодзи, читабельно в телеграме.\n2. НИКАКИХ эмодзи, смайликов, пиктограмм"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        352,
+        -96
+      ],
+      "id": "78974441-2839-4b28-9df0-e4dc7aa42379",
+      "name": "Answer to usr"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=You are a Neo4j database and Cypher query language expert. You are working with the judicialpractices database that contains judicial practices.\n\nDatabase structure:\n- Labels: Case, LegalPrinciple, Participant, Object\n- Relationships: various connections between these nodes\n\nYour task:\n1. Analyze the user's natural language query\n2. Generate an appropriate Cypher query for Neo4j\n3. Return only valid JSON for the HTTP request\n\nResponse format - ONLY JSON:\n{\n  \"statements\": [\n    {\n      \"statement\": \"YOUR_CYPHER_QUERY\"\n    }\n  ]\n}\n\nConversion examples:\n\nUser query: \"Show 10 recent court cases\"\nResponse: {\n  \"statements\": [\n    {\n      \"statement\": \"MATCH (c:Case) RETURN c ORDER BY c.date DESC LIMIT 10\"\n    }\n  ]\n}\n\nUser query: \"Find case participants\"\nResponse: {\n  \"statements\": [\n    {\n      \"statement\": \"MATCH (p:Participant) RETURN p LIMIT 15\"\n    }\n  ]\n}\n\nUser query: \"Show relationships between cases and legal principles\"\nResponse: {\n  \"statements\": [\n    {\n      \"statement\": \"MATCH (c:Case)-[r]->(lp:LegalPrinciple) RETURN c, r, lp LIMIT 10\"\n    }\n  ]\n}\n\nRules:\n- Always use LIMIT to prevent overload\n- Return only JSON without explanations\n- If unsure about structure, use simple queries with LIMIT\n- For dates, assume properties like date, createdAt, etc.\n- Keep queries efficient and simple\n- Use WHERE clauses for filtering when appropriate"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -144,
+        -96
+      ],
+      "id": "a98d4196-0eaa-4097-84dd-52671a365ff7",
+      "name": "Cypher query"
+    },
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "«Здравствуйте! Я — Олег Шелманов, инженер по ИИ и системный администратор. Чем могу быть полезен?» ",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -352,
+        -96
+      ],
+      "id": "4ec9effb-e8fb-4d95-b7ca-c48d54190a8a",
+      "name": "When chat message received",
+      "webhookId": "292a8736-476f-4e03-86f0-7b65b2941a5f"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Cypher query",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "neo4j_judicialpractices": {
+      "main": [
+        [
+          {
+            "node": "Answer to usr",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Answer to usr",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer to usr": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cypher query": {
+      "main": [
+        [
+          {
+            "node": "neo4j_judicialpractices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Cypher query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1f8e1d4f-46ab-43a3-a159-21d1111282bd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9ce263ea74ac56142ad0b445edd4996f0dce195bb2058608aecc86f0fd24906f"
+  },
+  "id": "rMPZeBeVk4kIRSnc",
+  "tags": []
+}
