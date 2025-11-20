@@ -1,0 +1,99 @@
+На основе предоставленной судебной практики я создам граф для Neo4j, который отображает связи между делами, участниками, решениями и правовыми позициями. Вот Cypher-запросы для построения графа:
+
+```cypher
+// Создаем узлы для судебных дел (кейсов)
+CREATE 
+// Собственники выигрывают суды
+(case1:Case {id: "88-12229/2020", court: "Второй КСОЮ", outcome: "выигрыш_собственника", description: "Шлагбаум во дворе, запрет проезда без реестра и оплаты" }),
+(case2:Case {id: "33-8946/2020", court: "Мосгорсуд", outcome: "выигрыш_собственника", description: "Установка шлагбаума, отказ в доступе для двух собственников" }),
+(case3:Case {id: "88-14464/2020", court: "Восьмой КСОЮ", outcome: "выигрыш_собственника", description: "Ограничение доступа к парковке только для оплативших" }),
+(case4:Case {id: "88-9888/2020", court: "Первый КСОЮ", outcome: "выигрыш_собственника", description: "Отказ в выдаче пульта для такси" }),
+
+// Собственники проигрывают суды
+(case5:Case {id: "88-7903/2020", court: "Второй КСОЮ", outcome: "проигрыш_собственника", description: "Требование убрать шлагбаум, мешающий въезду родственников и спецтранспорта" }),
+(case6:Case {id: "33-2668/2020", court: "Мосгорсуд", outcome: "проигрыш_собственника", description: "Требование выдать пульты арендатором магазина" }),
+(case7:Case {id: "33-414629/2020", court: "Мосгорсуд", outcome: "проигрыш_собственника", description: "Требование выдать дополнительные пульты для нескольких машин" }),
+(case8:Case {id: "88-17480/2020", court: "Третий КСОЮ", outcome: "проигрыш_собственника", description: "Требование вернуть открытие шлагбаума с пульта вместо звонка" }),
+
+// Создаем узлы для правовых принципов
+(principle1:LegalPrinciple {name: "Нельзя ограничивать право пользования общим имуществом" }),
+(principle2:LegalPrinciple {name: "Решение собрания не может нарушать права собственников" }),
+(principle3:LegalPrinciple {name: "Оплата установки не дает исключительных прав" }),
+(principle4:LegalPrinciple {name: "Доступ должен быть у всех собственников" }),
+(principle5:LegalPrinciple {name: "Ограничения для арендаторов законны" }),
+(principle6:LegalPrinciple {name: "Порядок выдачи пультов устанавливается собранием" }),
+
+// Создаем узлы для участников
+(participant1:Participant {type: "Собственник", role: "Истец" }),
+(participant2:Participant {type: "Собрание_собственников", role: "Ответчик" }),
+(participant3:Participant {type: "Управляющая_компания", role: "Ответчик" }),
+(participant4:Participant {type: "Арендатор", role: "Истец" }),
+
+// Создаем узлы для объектов спора
+(object1:Object {type: "Шлагбаум", purpose: "Ограничение въезда" }),
+(object2:Object {type: "Пульт_управления", purpose: "Доступ к шлагбауму" }),
+(object3:Object {type: "Парковка", purpose: "Место для транспорта" })
+
+// Создаем связи между делами и участниками
+CREATE
+(case1)-[:INVOLVES]->(participant1),
+(case1)-[:INVOLVES]->(participant2),
+(case2)-[:INVOLVES]->(participant1),
+(case2)-[:INVOLVES]->(participant2),
+(case3)-[:INVOLVES]->(participant1),
+(case3)-[:INVOLVES]->(participant2),
+(case4)-[:INVOLVES]->(participant1),
+(case4)-[:INVOLVES]->(participant3),
+(case5)-[:INVOLVES]->(participant1),
+(case5)-[:INVOLVES]->(participant2),
+(case6)-[:INVOLVES]->(participant4),
+(case6)-[:INVOLVES]->(participant2),
+(case7)-[:INVOLVES]->(participant1),
+(case7)-[:INVOLVES]->(participant2),
+(case8)-[:INVOLVES]->(participant1),
+(case8)-[:INVOLVES]->(participant3),
+
+// Создаем связи между делами и объектами
+(case1)-[:CONCERNS]->(object1),
+(case1)-[:CONCERNS]->(object2),
+(case2)-[:CONCERNS]->(object1),
+(case2)-[:CONCERNS]->(object2),
+(case3)-[:CONCERNS]->(object1),
+(case3)-[:CONCERNS]->(object3),
+(case4)-[:CONCERNS]->(object1),
+(case4)-[:CONCERNS]->(object2),
+(case5)-[:CONCERNS]->(object1),
+(case6)-[:CONCERNS]->(object1),
+(case6)-[:CONCERNS]->(object2),
+(case7)-[:CONCERNS]->(object1),
+(case7)-[:CONCERNS]->(object2),
+(case8)-[:CONCERNS]->(object1),
+
+// Создаем связи между делами и правовыми принципами
+(case1)-[:BASED_ON]->(principle1),
+(case1)-[:BASED_ON]->(principle4),
+(case2)-[:BASED_ON]->(principle1),
+(case2)-[:BASED_ON]->(principle2),
+(case3)-[:BASED_ON]->(principle3),
+(case3)-[:BASED_ON]->(principle4),
+(case4)-[:BASED_ON]->(principle1),
+(case4)-[:BASED_ON]->(principle2),
+(case5)-[:BASED_ON]->(principle6),
+(case6)-[:BASED_ON]->(principle5),
+(case7)-[:BASED_ON]->(principle6),
+(case8)-[:BASED_ON]->(principle6)
+```
+
+Этот граф будет содержать:
+
+1. **Узлы Case** - судебные дела с атрибутами (номер, суд, исход, описание)
+2. **Узлы LegalPrinciple** - правовые принципы, на которые ссылались суды
+3. **Узлы Participant** - участники процессов (собственники, собрания, УК, арендаторы)
+4. **Узлы Object** - объекты спора (шлагбаумы, пульты, парковки)
+5. **Связи** между делами и участниками/объектами/принципами
+
+Граф позволит анализировать:
+- Какие дела выигрывают/проигрывают собственники
+- Какие правовые принципы применяются в разных ситуациях
+- Кто является участниками споров
+- Какие объекты становятся предметом разбирательств
